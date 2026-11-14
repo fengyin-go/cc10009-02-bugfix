@@ -3,7 +3,9 @@
     <header class="page-head">
       <div>
         <h2>字段映射管理</h2>
-        <p class="page-desc">维护字段映射规则的输入、执行约束与结果记录，为字段映射提供可验证的数据工程流程。</p>
+        <p class="page-desc">
+          字段映射契约随网页模板启用结果同步生成，只引用模板当前有效版本；模板废弃时对应映射同步停用。
+        </p>
       </div>
       <div class="page-actions">
         <button class="btn primary" type="button" @click="openCreate">登记映射规则</button>
@@ -22,6 +24,7 @@
       <span v-for="item in statusSummary" :key="item.status" class="legend-item">
         {{ item.status }}：{{ item.count }}
       </span>
+      <span class="legend-item legend-hint">状态按 草稿→待校验→已启用→已停用 单向推进，越级/倒序动作已在服务端拒绝</span>
     </p>
 
     <form class="filter-bar" @submit.prevent="reload">
@@ -37,6 +40,8 @@
       <thead>
         <tr>
           <th v-for="column in columns" :key="column">{{ column }}</th>
+          <th>来源模板 / 版本</th>
+          <th>同步状态</th>
           <th>当前状态</th>
           <th>可执行动作</th>
         </tr>
@@ -44,10 +49,23 @@
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
           <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
-          <td>{{ row.status }}</td>
+          <td>
+            <template v-if="row.关联模板编号">
+              {{ row.关联模板编号 }} {{ row.关联模板版本 }}
+              <span class="badge badge-sync">{{ row.同步来源 }}</span>
+            </template>
+            <span v-else class="muted-text">手工登记</span>
+          </td>
+          <td>
+            <span v-if="row.同步状态" :class="['badge', row.同步状态 === '已同步' ? 'badge-pass' : 'badge-idle']">
+              {{ row.同步状态 }}
+            </span>
+            <span v-else class="muted-text">—</span>
+          </td>
+          <td><span :class="['status-pill', `status-${statusOrder(row.status)}`]">{{ row.status }}</span></td>
           <td class="row-actions">
             <button
-              v-for="action in actions"
+              v-for="action in availableActions(row)"
               :key="action"
               class="link"
               type="button"
@@ -55,10 +73,11 @@
             >
               {{ action }}
             </button>
+            <span v-if="!availableActions(row).length" class="muted-text">已到终态，无可用动作</span>
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="columns.length + 2" class="empty-state">暂无字段映射数据，可先登记映射规则</td>
+          <td :colspan="columns.length + 4" class="empty-state">暂无字段映射数据，可先登记映射规则</td>
         </tr>
       </tbody>
     </table>
@@ -66,6 +85,7 @@
     <footer class="page-foot">
       <span>共 {{ total }} 条字段映射记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
+      <span v-else-if="successMessage" class="success-text">{{ successMessage }}</span>
     </footer>
   </section>
 </template>
@@ -83,13 +103,20 @@ import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('extractor')
 const columns = ["规则编号", "源字段名称", "目标字段名称", "数据类型转换", "默认填充值", "清洗表达式", "必填标识", "唯一性校验"]
-const actions = ["提交校验", "启用规则", "停用规则"]
 const statuses = ["草稿", "待校验", "已启用", "已停用"]
+// 只暴露当前状态的下一步动作，越级/倒序入口在页面上直接不出现，服务端仍有二次拦截。
+const NEXT_ACTION: Record<string, string[]> = {
+  草稿: ["提交校验"],
+  待校验: ["启用规则"],
+  已启用: ["停用规则"],
+  已停用: [],
+}
 const stats = [{"label": "映射规则总数", "value": 0}, {"label": "已启用规则", "value": 0}, {"label": "待校验规则", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
+const successMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
 const statusSummary = computed(() =>
@@ -98,6 +125,15 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+
+function statusOrder(status: string): number {
+  const idx = statuses.indexOf(String(status))
+  return idx < 0 ? 0 : idx
+}
+
+function availableActions(row: EntryRow): string[] {
+  return NEXT_ACTION[String(row.status)] ?? []
+}
 
 function resetFilters() {
   filters.value = {}
@@ -110,15 +146,18 @@ function exportRows() {
 
 function openCreate() {
   errorMessage.value = '映射规则登记入口尚未接入审批流'
+  successMessage.value = ''
 }
 
 function runAction(action: string, row: EntryRow) {
   errorMessage.value = ''
+  successMessage.value = ''
   const result = applyAction(meta.key, Number(row.id), action)
   if (!result.ok) {
     errorMessage.value = result.message
     return
   }
+  successMessage.value = result.message
   reload()
 }
 

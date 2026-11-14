@@ -35,3 +35,23 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .error-text { color: #b42318; }
 .status-legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 10px; font-size: 12px; color: var(--muted); }
 .legend-item { background: #eef2f7; border-radius: 999px; padding: 2px 10px; }
+.legend-hint { background: #fff7ed; color: #b45309; }
+.muted-text { color: var(--muted); font-size: 12px; }
+.success-text { color: #067647; }
+.badge { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
+.badge-pass { background: #e7f6ec; color: #067647; }
+.badge-fail { background: #fde8e8; color: #b42318; }
+.badge-idle { background: #eef2f7; color: var(--muted); }
+.badge-current { background: #e8f0fe; color: var(--brand); }
+.badge-history { background: #f1f3f6; color: var(--muted); }
+.badge-sync { margin-left: 4px; background: #f0f5ff; color: var(--brand); }
+.status-pill { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+.status-0 { background: #f1f3f6; color: var(--muted); }
+.status-1 { background: #fff4e0; color: #b45309; }
+.status-2 { background: #e7f6ec; color: #067647; }
+.status-3 { background: #fde8e8; color: #b42318; }
+.history-row { background: #fafbfc; color: var(--muted); }
+.missing-hint { display: block; margin-top: 2px; color: #b42318; font-size: 12px; }
+.sync-panel { margin-top: 16px; }
+.sync-panel h3 { font-size: 14px; margin: 0 0 8px; }
+.link:disabled { color: #9aa7b8; cursor: not-allowed; }

@@ -8,7 +8,10 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "verify:domain": "node verify-domain.mjs",
+    "verify:sync": "node verify-sync.mjs",
+    "verify": "node verify-domain.mjs && node verify-sync.mjs"
   },
   "dependencies": {
     "pinia": "^2.1.7",
